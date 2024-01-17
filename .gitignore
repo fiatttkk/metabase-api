@@ -1,0 +1,8 @@
+.env
+credentials/
+.DS_STORE
+.env
+*.ipynb
+__pycache__/
+*.log
+log/
