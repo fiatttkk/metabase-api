@@ -1,12 +1,10 @@
 import requests
 import pandas as pd
 import re
-from services.data_dict_logger import setup_logging
-from dotenv import load_dotenv
+from metabase_api_logger import setup_logging
 import os
 import time
 
-load_dotenv()
 class MetabaseAPI:
     """
     A class for interacting with Metabase using the requests library.
