@@ -1,9 +1,0 @@
-README.md
-setup.py
-metabase_pandas_api/__init__.py
-metabase_pandas_api/metabase_pandas_api.py
-metabase_pandas_api.egg-info/PKG-INFO
-metabase_pandas_api.egg-info/SOURCES.txt
-metabase_pandas_api.egg-info/dependency_links.txt
-metabase_pandas_api.egg-info/requires.txt
-metabase_pandas_api.egg-info/top_level.txt

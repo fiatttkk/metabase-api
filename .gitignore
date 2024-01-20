@@ -7,3 +7,6 @@ __pycache__/
 *.log
 log/
 venv/
+dist/
+build/
+*.egg-info/

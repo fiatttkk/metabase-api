@@ -1,1 +1,0 @@
-from metabase_pandas_api import MetabaseAPI
