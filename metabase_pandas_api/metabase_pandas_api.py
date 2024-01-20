@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import re
-from metabase_api_logger import setup_logging
+from service.metabase_api_logger import setup_logging
 import os
 import time
 
@@ -24,7 +24,7 @@ class MetabaseAPI:
         self.username = username
         self.password = password
         self.session = self._login()
-        self.logger = setup_logging(logger_name="metabase_api", log_file_path=os.getenv('SYSTEM_LOG_PATH'))
+        self.logger = setup_logging(logger_name="metabase_api")
     
     def _login(self):
         """
