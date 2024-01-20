@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='metabase-pandas-api',
+    name='metabase_pandas_api',
     version='0.1.0',
     author='Fiat',
     author_email='fiat.ttkk@gmail.com',
