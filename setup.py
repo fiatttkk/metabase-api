@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='metabase_pandas_api',
-    version='0.1.0',
+    name='metabase-pandas-api',
+    version='1.0.0',
     author='Fiat',
     author_email='fiat.ttkk@gmail.com',
     description='A Python library for interacting with Metabase API',

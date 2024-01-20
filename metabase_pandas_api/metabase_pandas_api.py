@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import re
-from service.metabase_pandas_api_logger import setup_logging
+from .metabase_pandas_api_logger import setup_logging
 import os
 import time
 

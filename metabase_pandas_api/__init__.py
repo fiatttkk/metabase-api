@@ -1,1 +1,1 @@
-from metabase_pandas_api import MetabaseAPI
+from .metabase_pandas_api import MetabaseAPI
