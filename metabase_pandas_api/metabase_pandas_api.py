@@ -202,10 +202,11 @@ class MetabaseAPI:
         if file_path:
             with open(f"{file_path}.csv", "wb") as file:
                 file.write(csv_response.content)
-            return None
+            self.response_data = None
         else:
-            content = csv_response.content.decode('utf-8')
-            return content
+            self.result = csv_response.content.decode('utf-8')
+            
+        return self
     
     def to_pandas_dataframe(self, response_data=None):
         """
