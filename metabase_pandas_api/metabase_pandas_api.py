@@ -4,6 +4,7 @@ import re
 from .metabase_pandas_api_logger import setup_logging
 import os
 import time
+import io
 
 class MetabaseAPI:
     """
@@ -179,6 +180,33 @@ class MetabaseAPI:
 
         return merged_dict
     
+    def export_card(self, card_number=None, file_path=None):
+        """
+        Export data from a Metabase card and save it in the specified format and path.
+
+        Args:
+            self: The Metabase API client.
+            card_number (int): The card number to export data from.
+            file_path (str, optional): The path to save the exported file.
+
+        Returns:
+            None: The function saves the exported data to the specified file path.
+        """
+        
+        if not card_number:
+            raise ValueError("card_number must not be empty")
+        
+        endpoint = f"{self.metabase_url}/api/card/{card_number}/query/csv"
+        csv_response = self.session.post(endpoint)
+
+        if file_path:
+            with open(f"{file_path}.csv", "wb") as file:
+                file.write(csv_response.content)
+            return None
+        else:
+            content = csv_response.content.decode('utf-8')
+            return content
+    
     def to_pandas_dataframe(self, response_data=None):
         """
         Convert the query response to a Pandas DataFrame.
@@ -194,11 +222,13 @@ class MetabaseAPI:
         try:
             if response_data is None:
                 response_data = self.result
-
-            if response_data and 'data' in response_data and 'rows' in response_data['data'] and 'cols' in response_data['data']:
+                
+            if response_data and isinstance(response_data, str):
+                return pd.read_csv(io.StringIO(response_data))
+        
+            if isinstance(response_data, dict) and 'data' in response_data and 'rows' in response_data['data'] and 'cols' in response_data['data']:
                 rows_data = response_data['data']['rows']
                 columns = [col.get('name') for col in response_data['data']['cols']]
-
                 return pd.DataFrame(rows_data, columns=columns)
 
             else:
@@ -222,7 +252,11 @@ class MetabaseAPI:
         try:
             if response_data is None:
                 response_data = self.result
-
+                
+            if response_data and isinstance(response_data, str):
+                self.logger.info("The response data is already in string format.")
+                return response_data
+            
             if response_data and 'data' in response_data and 'rows' in response_data['data']:
                 rows_data = response_data['data']['rows']
                 if rows_data and rows_data[0]:
