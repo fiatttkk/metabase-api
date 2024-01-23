@@ -27,13 +27,11 @@ def setup_logging(logger_name, log_file_path=None, logging_mode='both'):
     valid_modes = ['file', 'console', 'both']
     if logging_mode not in valid_modes:
         # Default to console logging and log a warning
-        logging.warning(f"Invalid logging_mode provided: {logging_mode}. Defaulting to 'console' mode.")
         logging_mode = 'console'
 
     # Handle missing file path when file logging is requested
     if logging_mode in ['file', 'both'] and not log_file_path:
         # Default to console logging and log a warning
-        logging.warning("File path not provided for file logging mode. Defaulting to 'console' mode.")
         logging_mode = 'console'
 
     logger = logging.getLogger(logger_name)

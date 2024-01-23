@@ -192,7 +192,7 @@ class MetabaseAPI:
         Returns:
             None: The function saves the exported data to the specified file path.
         """
-        
+        self.logger.info(f"Fetching data from Metabase - Card:{card_number}...")
         if not card_number:
             raise ValueError("card_number must not be empty")
         
