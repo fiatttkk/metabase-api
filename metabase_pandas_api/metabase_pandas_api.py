@@ -200,7 +200,7 @@ class MetabaseAPI:
         csv_response = self.session.post(endpoint)
 
         if file_path:
-            with open(f"{file_path}.csv", "wb") as file:
+            with open(f"{file_path}", "wb") as file:
                 file.write(csv_response.content)
             self.response_data = None
         else:
