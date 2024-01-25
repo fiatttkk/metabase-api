@@ -209,18 +209,18 @@ class MetabaseAPI:
                         with self.session.post(endpoint, stream=True) as r:
                             if r.status_code != 200:
                                 raise Exception(f"Failed to stream data: status code {r.status_code}")
-                            total_size = int(r.headers.get('content-length', 0))
                             
-                        downloaded_size = 0
-                        with open(file_path, "wb") as file:
-                            for chunk in r.iter_content(chunk_size=chunk_size):
-                                file.write(chunk)
-                                downloaded_size += len(chunk)
-                                if total_size > 0:
-                                    percent_complete = (downloaded_size / total_size) * 100
-                                    self.logger.info(f"Downloading... {percent_complete:.2f}% complete")
-                                else:
-                                    self.logger.info(f"Downloaded {downloaded_size} bytes")
+                            total_size = int(r.headers.get('content-length', 0))
+                            downloaded_size = 0
+                            with open(file_path, "wb") as file:
+                                for chunk in r.iter_content(chunk_size=chunk_size):
+                                    file.write(chunk)
+                                    downloaded_size += len(chunk)
+                                    if total_size > 0:
+                                        percent_complete = (downloaded_size / total_size) * 100
+                                        self.logger.info(f"Downloading... {percent_complete:.2f}% complete")
+                                    else:
+                                        self.logger.info(f"Downloaded {downloaded_size} bytes")
                             
                     else:
                         csv_response = self.session.post(endpoint)
