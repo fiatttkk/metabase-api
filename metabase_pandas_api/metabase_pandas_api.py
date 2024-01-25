@@ -218,9 +218,9 @@ class MetabaseAPI:
                                     downloaded_size += len(chunk)
                                     if total_size > 0:
                                         percent_complete = (downloaded_size / total_size) * 100
-                                        self.logger.info(f"Downloading... {percent_complete:.2f}% complete")
+                                        print(f"\rDownloading... {percent_complete:.2f}% complete", end="", flush=True)
                                     else:
-                                        self.logger.info(f"Downloaded {downloaded_size} bytes")
+                                        print(f"\rDownloaded {downloaded_size} bytes", end="", flush=True)
                             
                     else:
                         csv_response = self.session.post(endpoint)
