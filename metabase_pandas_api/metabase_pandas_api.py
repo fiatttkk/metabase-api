@@ -180,7 +180,7 @@ class MetabaseAPI:
 
         return merged_dict
     
-    def export_card(self, card_number=None, file_path=None):
+    def export_card(self, card_number=None, file_path=None, chunk_size=None):
         """
         Export data from a Metabase card and save it in the specified format and path.
 
@@ -193,20 +193,50 @@ class MetabaseAPI:
             None: The function saves the exported data to the specified file path.
         """
         self.logger.info(f"Fetching data from Metabase - Card:{card_number}...")
-        if not card_number:
-            raise ValueError("card_number must not be empty")
-        
-        endpoint = f"{self.metabase_url}/api/card/{card_number}/query/csv"
-        csv_response = self.session.post(endpoint)
+        retries = 0
+        max_retries = 3
+        retry_delay = 5
 
-        if file_path:
-            with open(f"{file_path}", "wb") as file:
-                file.write(csv_response.content)
-            self.response_data = None
-        else:
-            self.result = csv_response.content.decode('utf-8')
-            
+        while retries <= max_retries:
+            try:
+                if not card_number:
+                    raise ValueError("card_number must not be empty")
+
+                endpoint = f"{self.metabase_url}/api/card/{card_number}/query/csv"
+
+                if file_path:
+                    if chunk_size:
+                        with self.session.post(endpoint, stream=True) as r:
+                            if r.status_code != 200:
+                                raise Exception(f"Failed to stream data: status code {r.status_code}")
+                            with open(file_path, "wb") as file:
+                                for chunk in r.iter_content(chunk_size=chunk_size):
+                                    file.write(chunk)
+                    else:
+                        csv_response = self.session.post(endpoint)
+                        if csv_response.status_code != 200:
+                            raise Exception(f"Failed to fetch data: status code {csv_response.status_code}")
+                        else:
+                            with open(file_path, "wb") as file:
+                                file.write(csv_response.content)
+                    self.response_data = None
+                else:
+                    self.result = csv_response.content.decode('utf-8')
+
+                break
+
+            except Exception as e:
+                self.logger.error(f"Error fetching data: {e}")
+                retries += 1
+                if retries <= max_retries:
+                    self.logger.info(f"Retrying... Attempt {retries}/{max_retries}")
+                    time.sleep(retry_delay)
+                else:
+                    self.logger.error("Max retries reached. Giving up.")
+                    raise
+
         return self
+
     
     def to_pandas_dataframe(self, response_data=None):
         """
