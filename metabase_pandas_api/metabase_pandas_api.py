@@ -204,34 +204,36 @@ class MetabaseAPI:
 
                 endpoint = f"{self.metabase_url}/api/card/{card_number}/query/csv"
 
-                if file_path:
-                    if chunk_size:
-                        with self.session.post(endpoint, stream=True) as r:
-                            if r.status_code != 200:
-                                raise Exception(f"Failed to stream data: status code {r.status_code}")
-                            
-                            total_size = int(r.headers.get('content-length', 0))
-                            downloaded_size = 0
-                            with open(file_path, "wb") as file:
-                                for chunk in r.iter_content(chunk_size=chunk_size):
-                                    file.write(chunk)
-                                    downloaded_size += len(chunk)
-                                    if total_size > 0:
-                                        percent_complete = (downloaded_size / total_size) * 100
-                                        self.logger.info(f"Downloading... {percent_complete:.2f}% complete.")
-                                    else:
-                                        self.logger.info(f"Downloaded {downloaded_size} bytes.")
-                            self.logger.info(f"Card:{card_number} download successfully.")
+                if chunk_size and file_path:
+                    with self.session.post(endpoint, stream=True) as r:
+                        if r.status_code != 200:
+                            raise Exception(f"Failed to stream data: status code {r.status_code}")
+                        
+                        total_size = int(r.headers.get('content-length', 0))
+                        downloaded_size = 0
+                        with open(file_path, "wb") as file:
+                            for chunk in r.iter_content(chunk_size=chunk_size):
+                                file.write(chunk)
+                                downloaded_size += len(chunk)
+                                if total_size > 0:
+                                    percent_complete = (downloaded_size / total_size) * 100
+                                    self.logger.info(f"Downloading... {percent_complete:.2f}% complete.")
+                                else:
+                                    self.logger.info(f"Downloaded {downloaded_size} bytes.")
+                        self.logger.info(f"Card:{card_number} download successfully.")
+                elif file_path:
+                    csv_response = self.session.post(endpoint)
+                    if csv_response.status_code != 200:
+                        raise Exception(f"Failed to fetch data: status code {csv_response.status_code}")
                     else:
-                        csv_response = self.session.post(endpoint)
-                        if csv_response.status_code != 200:
-                            raise Exception(f"Failed to fetch data: status code {csv_response.status_code}")
-                        else:
-                            with open(file_path, "wb") as file:
-                                file.write(csv_response.content)
-                    self.response_data = None
+                        with open(file_path, "wb") as file:
+                            file.write(csv_response.content)
                 else:
-                    self.result = csv_response.content.decode('utf-8')
+                    csv_response = self.session.post(endpoint)
+                    if csv_response.status_code != 200:
+                        raise Exception(f"Failed to fetch data: status code {csv_response.status_code}")
+                    else:
+                        self.result = csv_response.content.decode('utf-8')
 
                 break
 
