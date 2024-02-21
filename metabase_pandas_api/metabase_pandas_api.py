@@ -217,9 +217,9 @@ class MetabaseAPI:
                                 downloaded_size += len(chunk)
                                 if total_size > 0:
                                     percent_complete = (downloaded_size / total_size) * 100
-                                    self.logger.info(f"Downloading... {percent_complete:.2f}% complete.")
+                                    print(f"\rDownloaing: {percent_complete} %", end='')
                                 else:
-                                    self.logger.info(f"Downloaded {downloaded_size} bytes.")
+                                    print(f"Downloaded {downloaded_size} bytes.")
                         self.logger.info(f"Card:{card_number} download successfully.")
                 elif file_path:
                     csv_response = self.session.post(endpoint)
