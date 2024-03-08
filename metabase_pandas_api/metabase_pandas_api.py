@@ -1,10 +1,9 @@
 import requests
 import pandas as pd
 import re
-from .metabase_pandas_api_logger import setup_logging
-import os
 import time
 import io
+import logging
 
 class MetabaseAPI:
     """
@@ -25,7 +24,6 @@ class MetabaseAPI:
         self.username = username
         self.password = password
         self.session = self._login()
-        self.logger = setup_logging(logger_name="metabase_api")
     
     def _login(self):
         """
@@ -47,7 +45,7 @@ class MetabaseAPI:
             response.raise_for_status()
             
         except Exception as e:
-            self.logger.error(str(e))
+            logging.error(str(e))
             raise RuntimeError(str(e))
 
         return session
@@ -63,7 +61,7 @@ class MetabaseAPI:
         Returns:
             json response
         """
-        self.logger.info("Querying based on custom query...")
+        logging.info("Querying based on custom query...")
         endpoint = f"{self.metabase_url}/api/dataset"
         retries = 0
         max_retries = 3
@@ -117,25 +115,25 @@ class MetabaseAPI:
                     error_type = current_batch.get('error_type')
                     error_message = current_batch.get('error')
                     if "canceling statement due to conflict with recovery" in error_message:
-                        self.logger.warning(f"Recovery-related error encountered. Retrying... (Attempt {retries+1}/{max_retries})")
+                        logging.warning(f"Recovery-related error encountered. Retrying... (Attempt {retries+1}/{max_retries})")
                         retries += 1
                         time.sleep(retry_delay)
                         continue
                     else:
-                        self.logger.error(f"Error during custom query execution.\nError type: {error_type}\nError: {error_message}\nReturn value -> None")
+                        logging.error(f"Error during custom query execution.\nError type: {error_type}\nError: {error_message}\nReturn value -> None")
                         break
                 else:
                     break
             
             except Exception as e:
-                self.logger.error(str(e))
+                logging.error(str(e))
                 raise RuntimeError(str(e))
             
         if retries >= max_retries:
-            self.logger.error("Maximum retry attempts reached. Aborting query.")
+            logging.error("Maximum retry attempts reached. Aborting query.")
             return None
             
-        self.logger.info("Querying completed.")
+        logging.info("Querying completed.")
         self.result = merged_dict
         return self
     
@@ -154,7 +152,6 @@ class MetabaseAPI:
         Returns:
             dict: A new dictionary that is the result of merging the input dictionaries.
         """
-        logger = setup_logging(logger_name="metabase_api", log_file_path=os.getenv('SYSTEM_LOG_PATH'))
         try:
             merged_dict = {}
             all_keys = set(dict1.keys()) | set(dict2.keys())
@@ -175,7 +172,7 @@ class MetabaseAPI:
                     merged_dict[key] = val1 if val1 is not None else val2
                 
         except Exception as e:
-            logger.error(str(e))
+            logging.error(str(e))
             raise RuntimeError(str(e))
 
         return merged_dict
@@ -192,7 +189,7 @@ class MetabaseAPI:
         Returns:
             None: The function saves the exported data to the specified file path.
         """
-        self.logger.info(f"Fetching data from Metabase - Card:{card_number}...")
+        logging.info(f"Fetching data from Metabase - Card:{card_number}...")
         retries = 0
         max_retries = 3
         retry_delay = 5
@@ -220,7 +217,7 @@ class MetabaseAPI:
                                     print(f"\rDownloaing: {percent_complete} %", end='')
                                 else:
                                     print(f"Downloaded {downloaded_size} bytes.")
-                        self.logger.info(f"Card:{card_number} download successfully.")
+                        logging.info(f"Card:{card_number} download successfully.")
                 elif file_path:
                     csv_response = self.session.post(endpoint)
                     if csv_response.status_code != 200:
@@ -238,13 +235,13 @@ class MetabaseAPI:
                 break
 
             except Exception as e:
-                self.logger.error(f"Error fetching data: {e}")
+                logging.error(f"Error fetching data: {e}")
                 retries += 1
                 if retries <= max_retries:
-                    self.logger.info(f"Retrying... Attempt {retries}/{max_retries}")
+                    logging.info(f"Retrying... Attempt {retries}/{max_retries}")
                     time.sleep(retry_delay)
                 else:
-                    self.logger.error("Max retries reached. Giving up.")
+                    logging.error("Max retries reached. Giving up.")
                     raise
 
         return self
@@ -275,11 +272,11 @@ class MetabaseAPI:
                 return pd.DataFrame(rows_data, columns=columns)
 
             else:
-                self.logger.warning("Invalid or empty response data for DataFrame conversion.")
+                logging.warning("Invalid or empty response data for DataFrame conversion.")
                 return pd.DataFrame()
 
         except Exception as e:
-            self.logger.error(str(e))
+            logging.error(str(e))
             raise RuntimeError(str(e))
     
     def to_string(self, response_data=None):
@@ -297,7 +294,7 @@ class MetabaseAPI:
                 response_data = self.result
                 
             if response_data and isinstance(response_data, str):
-                self.logger.info("The response data is already in string format.")
+                logging.info("The response data is already in string format.")
                 return response_data
             
             if response_data and 'data' in response_data and 'rows' in response_data['data']:
@@ -305,11 +302,11 @@ class MetabaseAPI:
                 if rows_data and rows_data[0]:
                     return str(rows_data[0][0])
                 else:
-                    self.logger.warning("Query returned no rows")
+                    logging.warning("Query returned no rows")
                     return None
             else:
-                self.logger.warning("Invalid or empty response data.")
+                logging.warning("Invalid or empty response data.")
                 return None
         except Exception as e:
-            self.logger.error(str(e))
+            logging.error(str(e))
             raise RuntimeError(str(e))
