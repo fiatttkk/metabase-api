@@ -9,7 +9,7 @@ class MetabaseAPI:
     """
     A class for interacting with Metabase using the requests library.
     """
-    
+
     def __init__(self, metabase_url: str, username: str, password: str):
         """
         Initialize the MetabaseAPI.
@@ -19,12 +19,12 @@ class MetabaseAPI:
         - username (str): Metabase username.
         - password (str): Metabase password.
         """
-        
+
         self.metabase_url = metabase_url.strip("/")
         self.username = username
         self.password = password
         self.session = self._login()
-    
+
     def _login(self):
         """
         Log in to Metabase and return a session.
@@ -32,24 +32,24 @@ class MetabaseAPI:
         Returns:
         - requests.Session: A session object for making authenticated requests.
         """
-        
+
         session = requests.Session()
         login_url = f"{self.metabase_url}/api/session"
         login_data = {
             "username": self.username,
             "password": self.password
         }
-        
+
         try:
             response = session.post(login_url, json=login_data)
             response.raise_for_status()
-            
+
         except Exception as e:
             logging.error(str(e))
             raise RuntimeError(str(e))
 
         return session
-    
+
     def custom_query(self, sql: str, database_id: int = 6):
         """
         Custom query through metabase API using database id and custom query.
@@ -83,7 +83,7 @@ class MetabaseAPI:
                         limit_value -= 2000
                     else:
                         query += f"\nOFFSET {str(offset)}"
-                        
+
                     payload = {
                         "type":"native",
                         "native":{
@@ -96,21 +96,21 @@ class MetabaseAPI:
                     response = self.session.post(endpoint, json=payload)
                     response.raise_for_status()
                     current_batch = response.json()
-                    
+
                     if 'error_type' in current_batch.keys() or 'error' in current_batch.keys():
                         break
-                    
+
                     if merged_dict is not None:
                         merged_dict = MetabaseAPI.deep_merge(merged_dict, current_batch)
                     else:
                         merged_dict = current_batch
-                        
+
                     len_rows = len(current_batch.get('data').get('rows'))
                     offset += 2000
-                    
+
                     if limit_value is not None and limit_value < 0:
                         break
-                    
+
                 if 'error_type' in current_batch.keys() or 'error' in current_batch.keys():
                     error_type = current_batch.get('error_type')
                     error_message = current_batch.get('error')
@@ -124,19 +124,19 @@ class MetabaseAPI:
                         break
                 else:
                     break
-            
+
             except Exception as e:
                 logging.error(str(e))
                 raise RuntimeError(str(e))
-            
+
         if retries >= max_retries:
             logging.error("Maximum retry attempts reached. Aborting query.")
             return None
-            
+
         logging.info("Querying completed.")
         self.result = merged_dict
         return self
-    
+
     @staticmethod
     def deep_merge(dict1, dict2):
         """
@@ -170,13 +170,13 @@ class MetabaseAPI:
                     merged_dict[key] = MetabaseAPI.deep_merge(val1, val2)
                 else:
                     merged_dict[key] = val1 if val1 is not None else val2
-                
+
         except Exception as e:
             logging.error(str(e))
             raise RuntimeError(str(e))
 
         return merged_dict
-    
+
     def export_card(self, card_number=None, file_path=None, chunk_size=None):
         """
         Export data from a Metabase card and save it in the specified format and path.
@@ -204,31 +204,53 @@ class MetabaseAPI:
                 if chunk_size and file_path:
                     with self.session.post(endpoint, stream=True) as r:
                         if r.status_code != 200:
-                            raise Exception(f"Failed to stream data: status code {r.status_code}")
-                        
-                        total_size = int(r.headers.get('content-length', 0))
-                        downloaded_size = 0
-                        with open(file_path, "wb") as file:
-                            for chunk in r.iter_content(chunk_size=chunk_size):
-                                file.write(chunk)
-                                downloaded_size += len(chunk)
-                                if total_size > 0:
-                                    percent_complete = (downloaded_size / total_size) * 100
-                                    print(f"\rDownloaing: {percent_complete} %", end='')
-                                else:
-                                    print(f"Downloaded {downloaded_size} bytes.")
-                        logging.info(f"Card:{card_number} download successfully.")
+                            logging.error(f"Failed to stream data: status code {r.status_code}")
+                            retries += 1
+                            if retries <= max_retries:
+                                logging.info(f"Retrying... Attempt {retries}/{max_retries}")
+                                time.sleep(retry_delay)
+                            else:
+                                logging.error("Max retries reached. Giving up.")
+                                return
+
+                        else:
+                            total_size = int(r.headers.get('content-length', 0))
+                            downloaded_size = 0
+                            with open(file_path, "wb") as file:
+                                for chunk in r.iter_content(chunk_size=chunk_size):
+                                    file.write(chunk)
+                                    downloaded_size += len(chunk)
+                                    if total_size > 0:
+                                        percent_complete = (downloaded_size / total_size) * 100
+                                        print(f"\rDownloaing: {percent_complete} %", end='')
+                                    else:
+                                        print(f"Downloaded {downloaded_size} bytes.")
+                            logging.info(f"Card:{card_number} download successfully.")
                 elif file_path:
                     csv_response = self.session.post(endpoint)
                     if csv_response.status_code != 200:
-                        raise Exception(f"Failed to fetch data: status code {csv_response.status_code}")
+                        logging.error(f"Failed to fetch data: status code {r.status_code}")
+                        retries += 1
+                        if retries <= max_retries:
+                            logging.info(f"Retrying... Attempt {retries}/{max_retries}")
+                            time.sleep(retry_delay)
+                        else:
+                            logging.error("Max retries reached. Giving up.")
+                            return
                     else:
                         with open(file_path, "wb") as file:
                             file.write(csv_response.content)
                 else:
                     csv_response = self.session.post(endpoint)
                     if csv_response.status_code != 200:
-                        raise Exception(f"Failed to fetch data: status code {csv_response.status_code}")
+                        logging.error(f"Failed to fetch data: status code {r.status_code}")
+                        retries += 1
+                        if retries <= max_retries:
+                            logging.info(f"Retrying... Attempt {retries}/{max_retries}")
+                            time.sleep(retry_delay)
+                        else:
+                            logging.error("Max retries reached. Giving up.")
+                            return
                     else:
                         self.result = csv_response.content.decode('utf-8')
 
@@ -246,7 +268,7 @@ class MetabaseAPI:
 
         return self
 
-    
+
     def to_pandas_dataframe(self, response_data=None):
         """
         Convert the query response to a Pandas DataFrame.
@@ -262,10 +284,10 @@ class MetabaseAPI:
         try:
             if response_data is None:
                 response_data = self.result
-                
+
             if response_data and isinstance(response_data, str):
                 return pd.read_csv(io.StringIO(response_data))
-        
+
             if isinstance(response_data, dict) and 'data' in response_data and 'rows' in response_data['data'] and 'cols' in response_data['data']:
                 rows_data = response_data['data']['rows']
                 columns = [col.get('name') for col in response_data['data']['cols']]
@@ -278,7 +300,7 @@ class MetabaseAPI:
         except Exception as e:
             logging.error(str(e))
             raise RuntimeError(str(e))
-    
+
     def to_string(self, response_data=None):
         """
         Convert the query response to a string.
@@ -292,11 +314,11 @@ class MetabaseAPI:
         try:
             if response_data is None:
                 response_data = self.result
-                
+
             if response_data and isinstance(response_data, str):
                 logging.info("The response data is already in string format.")
                 return response_data
-            
+
             if response_data and 'data' in response_data and 'rows' in response_data['data']:
                 rows_data = response_data['data']['rows']
                 if rows_data and rows_data[0]:
